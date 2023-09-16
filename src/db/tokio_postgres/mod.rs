@@ -2,6 +2,7 @@ use crate::prelude::*;
 mod sql;
 use std::convert::{TryFrom, TryInto};
 use tokio_postgres::Client;
+use uuid::Uuid;
 #[rocket::async_trait]
 impl DBConnection for Client {
     async fn init(&self) -> Result<()> {
@@ -9,7 +10,8 @@ impl DBConnection for Client {
         Ok(())
     }
     async fn create_user(&self, email: &str, hash: &str, is_admin: bool) -> Result<(), Error> {
-        self.execute(sql::INSERT_USER, &[&email, &hash, &is_admin])
+        let id = Uuid::new_v4();
+        self.execute(sql::INSERT_USER, &[&id, &email, &hash, &is_admin])
             .await?;
         Ok(())
     }
@@ -21,7 +23,7 @@ impl DBConnection for Client {
         .await?;
         Ok(())
     }
-    async fn delete_user_by_id(&self, user_id: i32) -> Result<()> {
+    async fn delete_user_by_id(&self, user_id: Uuid) -> Result<()> {
         self.execute(sql::REMOVE_BY_ID, &[&user_id]).await?;
         Ok(())
     }
@@ -29,7 +31,7 @@ impl DBConnection for Client {
         self.execute(sql::REMOVE_BY_EMAIL, &[&email]).await?;
         Ok(())
     }
-    async fn get_user_by_id(&self, user_id: i32) -> Result<User> {
+    async fn get_user_by_id(&self, user_id: Uuid) -> Result<User> {
         let user = self.query_one(sql::SELECT_BY_ID, &[&user_id]).await?;
         user.try_into()
     }

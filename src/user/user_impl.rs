@@ -4,6 +4,7 @@ use super::rand_string;
 use crate::prelude::*;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
+use uuid::Uuid;
 
 impl User {
     /// This method allows to reset the password of a user.
@@ -12,7 +13,7 @@ impl User {
     /// In case the user is authenticated,
     /// you can change it more easily with [`change_password`](`super::auth::Auth::change_password`).
     /// This function will fail in case the password is not secure enough.
-    /// 
+    ///
     /// ```rust
     /// # use rocket::{State, post};
     /// # use rocket_auth::{Error, Users};
@@ -27,7 +28,7 @@ impl User {
     pub fn set_password(&mut self, new: &str) {
         crate::forms::is_secure(new)?;
         let password = new.as_bytes();
-        let salt = rand_string(10);
+        let salt = rand_string(32);
         let config = argon2::Config::default();
         let hash = argon2::hash_encoded(password, salt.as_bytes(), &config).unwrap();
         self.password = hash;
@@ -52,7 +53,7 @@ impl User {
     ///     format!("Your user_id is: {}", user.id())
     /// }
     /// ```
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> Uuid {
         self.id
     }
     /// This is an accessor field for the private `email` field.
@@ -144,8 +145,8 @@ impl<'r> FromRequest<'r> for AdminUser {
     }
 }
 
-use std::ops::*;
 use argon2::verify_encoded;
+use std::ops::*;
 
 impl Deref for AdminUser {
     type Target = User;

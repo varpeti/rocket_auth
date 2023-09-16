@@ -7,11 +7,6 @@ pub enum Error {
     #[error("That is not a valid email address.")]
     InvalidEmailAddressError,
 
-    /// This error only occurs if the application panics while holding a locked mutex.
-    #[cfg(feature = "sqlx-sqlite")]
-    #[error("The mutex guarding the Sqlite connection was poisoned.")]
-    MutexPoisonError,
-
     /// Thrown when the requested user does not exist.
     #[error("Could not find any user that fits the specified requirements.")]
     UserNotFoundError,
@@ -41,47 +36,18 @@ pub enum Error {
     #[error("FormValidationErrors: {0}")]
     FormValidationErrors(#[from] validator::ValidationErrors),
 
-    /// A wrapper around [`sqlx::Error`].
-    #[cfg(any(feature = "sqlx"))]
-    #[error("SqlxError: {0}")]
-    SqlxError(#[from] sqlx::Error),
     /// A wrapper around [`argon2::Error`].
     #[error("Argon2ParsingError: {0}")]
     Argon2ParsingError(#[from] argon2::Error),
-
-    /// A wrapper around [`rusqlite::Error`].
-    #[cfg(feature = "rusqlite")]
-    #[error("RusqliteError: {0}")]
-    RusqliteError(#[from] rusqlite::Error),
-
-    /// A wrapper around [`redis::RedisError`].
-    #[cfg(feature = "redis")]
-    #[error("RedisError")]
-    RedisError(#[from] redis::RedisError),
 
     /// A wrapper around [`serde_json::Error`].
     #[error("SerdeError: {0}")]
     SerdeError(#[from] serde_json::Error),
 
-    /// A wrapper around [`std::io::Error`].
-    #[cfg(feature = "sqlx-postgres")]
-    #[error("IOError: {0}")]
-    IOError(#[from] std::io::Error),
-
     /// A wrapper around [`tokio_postgres::Error`].
     #[cfg(feature = "tokio-postgres")]
     #[error("TokioPostgresError: {0}")]
     TokioPostgresError(#[from] tokio_postgres::Error),
-}
-
-/*****  CONVERSIONS  *****/
-#[cfg(feature = "sqlx-sqlite")]
-use std::sync::PoisonError;
-#[cfg(feature = "sqlx-sqlite")]
-impl<T> From<PoisonError<T>> for Error {
-    fn from(_error: PoisonError<T>) -> Error {
-        Error::MutexPoisonError
-    }
 }
 
 use self::Error::*;
@@ -95,8 +61,7 @@ impl Error {
             FormValidationErrors(source) => {
                 source
                     .field_errors()
-                    .into_iter()
-                    .map(|(_, error)| error)
+                    .into_values()
                     .map(IntoIterator::into_iter)
                     .map(|errs| {
                         errs //
@@ -106,7 +71,7 @@ impl Error {
                     .fold(String::new(), |a, b| a + &b)
             }
             #[cfg(debug_assertions)]
-            e => return format!("{}", e),
+            e => format!("{}", e),
             #[allow(unreachable_patterns)]
             _ => "undefined".into(),
         }

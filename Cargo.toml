@@ -17,12 +17,6 @@ keywords = ["rocket", "users", "authentication", "auth", "session"]
 all-features = true
 
 
-[features]
-sqlx-sqlite = ["sqlx/sqlite"]
-sqlx-postgres = ["sqlx/postgres"]
-sqlx-mysql = ["sqlx/mysql"]
-
-
 [dependencies.rusqlite]
 version = "0.27.0"
 optional = true
@@ -30,7 +24,7 @@ optional = true
 
 [dependencies]
 rand = "0.8.5"
-rust-argon2 = "1.0.0"
+rust-argon2 = "2.0.0"
 lazy_static = "1.4.0"
 regex = "1.5.6"
 serde_json = "1.0.82"
@@ -41,6 +35,7 @@ fehler = "1.0.0"
 chrono = "0.4.19"
 validator = { version = "0.15.0", features = ["derive"] }
 futures= "0.3.21"
+uuid = { version="1.0", features = ["serde", "v4", "fast-rng"]}
 
 
 [dependencies.sqlx]
@@ -59,6 +54,7 @@ features = ["derive"]
 [dependencies.tokio-postgres]
 version = "0.7.6"
 optional = true
+features = ["with-uuid-1"]
 
 
 [dependencies.redis]
@@ -95,10 +91,5 @@ features = ["runtime-tokio-rustls"]
 [dev-dependencies.rocket_auth]
 path = "../rocket_auth"
 features = [
-    "sqlx-sqlite",
-    "sqlx-postgres",
-    "sqlx-mysql",
-    "redis",
     "tokio-postgres",
-    "rusqlite",
 ]

@@ -5,6 +5,7 @@ use crate::prelude::*;
 use argon2::verify_encoded as verify;
 
 use rand::random;
+use uuid::Uuid;
 pub fn rand_string(size: usize) -> String {
     (0..)
         .map(|_| random::<char>())
@@ -47,15 +48,15 @@ impl Users {
     }
 
     #[throws(Error)]
-    fn set_auth_key_for(&self, user_id: i32, time: Duration) -> String {
-        let key = rand_string(10);
+    fn set_auth_key_for(&self, user_id: Uuid, time: Duration) -> String {
+        let key = rand_string(32);
         self.sess.insert_for(user_id, key.clone(), time)?;
         key
     }
 
     #[throws(Error)]
-    fn set_auth_key(&self, user_id: i32) -> String {
-        let key = rand_string(15);
+    fn set_auth_key(&self, user_id: Uuid) -> String {
+        let key = rand_string(32);
         self.sess.insert(user_id, key.clone())?;
         key
     }
@@ -68,7 +69,7 @@ impl Users {
         let result = self.create_user(email, password, false).await;
         match result {
             Ok(_) => (),
-            #[cfg(feature="sqlx")]
+            #[cfg(feature = "sqlx")]
             Err(Error::SqlxError(sqlx::Error::Database(error))) => {
                 if error.code() == Some("23000".into()) {
                     throw!(Error::EmailAlreadyExists)
@@ -85,7 +86,10 @@ impl Users {
     #[throws(Error)]
     async fn login_for(&self, form: &Login, time: Duration) -> String {
         let form_pwd = &form.password.as_bytes();
-        let user = self.conn.get_user_by_email(&form.email.to_lowercase()).await?;
+        let user = self
+            .conn
+            .get_user_by_email(&form.email.to_lowercase())
+            .await?;
         let user_pwd = &user.password;
         if verify(user_pwd, form_pwd)? {
             self.set_auth_key_for(user.id, time)?
